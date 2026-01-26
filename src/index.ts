@@ -71,6 +71,18 @@ app.get('/image', async (_req: Request, res: Response) => {
       });
     }
     
+    // Verify that the selected file is still within the IMAGE_DIR to prevent path traversal
+    const resolvedImage = path.resolve(randomImage);
+    const resolvedImageDir = path.resolve(IMAGE_DIR);
+    
+    if (!resolvedImage.startsWith(resolvedImageDir)) {
+      logger.error(`Path traversal attempt detected: ${randomImage}`);
+      return res.status(403).json({ 
+        error: 'Forbidden',
+        message: 'Invalid file path'
+      });
+    }
+    
     logger.debug(`Serving image: ${path.basename(randomImage)}`);
     
     // Set appropriate headers
@@ -78,7 +90,7 @@ app.get('/image', async (_req: Request, res: Response) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     
     // Send the image file
-    res.sendFile(randomImage);
+    res.sendFile(resolvedImage);
   } catch (error) {
     logger.error('Error serving image:', error);
     res.status(500).json({ 

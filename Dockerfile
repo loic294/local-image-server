@@ -6,7 +6,9 @@ WORKDIR /app
 # Copy package files
 COPY package*.json package-lock.json* ./
 
-# Install production dependencies with strict-ssl disabled to work around cert issues
+# Install production dependencies
+# Note: strict-ssl is temporarily disabled only during npm install due to certificate chain
+# issues in some build environments. It's immediately re-enabled after installation.
 RUN npm config set strict-ssl false && \
     (npm ci --omit=dev || npm install --production) && \
     npm config set strict-ssl true
