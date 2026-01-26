@@ -11,6 +11,8 @@ A simple Node.js TypeScript application that serves random JPG images from a loc
 - 🔄 GitHub Actions CI/CD pipeline
 - ⚡ Fast image directory caching
 - 🏥 Health check endpoint
+- 🛡️ Rate limiting protection (100 requests per minute per IP)
+- 🔒 Path traversal protection
 
 ## Quick Start
 
