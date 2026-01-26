@@ -1,0 +1,28 @@
+# Dependencies
+node_modules
+npm-debug.log
+
+# Source maps (optional - uncomment if you don't want them in the image)
+# *.map
+
+# Tests
+test
+tests
+*.test.ts
+*.spec.ts
+
+# Documentation
+README.md
+*.md
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+
+# Misc
+.env
+.DS_Store
