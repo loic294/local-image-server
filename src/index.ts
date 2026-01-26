@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import * as path from 'path';
 import logger from './logger';
 import { findJpgFiles, selectRandomFile } from './imageScanner';
@@ -6,6 +7,18 @@ import { findJpgFiles, selectRandomFile } from './imageScanner';
 const app = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const IMAGE_DIR = process.env.IMAGE_DIR || '/images';
+
+// Configure rate limiting
+const limiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 100, // Limit each IP to 100 requests per minute
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply rate limiting to all requests
+app.use(limiter);
 
 // Cache for image files
 let imageFiles: string[] = [];
