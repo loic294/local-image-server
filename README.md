@@ -192,8 +192,9 @@ The project includes two GitHub Actions workflows:
    - Validates TypeScript compilation
 
 2. **Docker Build and Publish** (`.github/workflows/docker.yml`)
-   - Builds Docker image on push and pull requests
-   - Publishes to GitHub Container Registry on push to main/master
+   - Runs only after PR is merged (on push to main/master)
+   - Builds TypeScript code before Docker image
+   - Publishes to GitHub Container Registry
    - Supports semantic versioning with tags
 
 ## License
