@@ -8,6 +8,9 @@ const app = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const IMAGE_DIR = process.env.IMAGE_DIR || '/images';
 const ONLY_HORIZONTAL = process.env.ONLY_HORIZONTAL === 'true';
+const SKIP_PATTERNS = process.env.SKIP_PATTERNS 
+  ? process.env.SKIP_PATTERNS.split(',').map(pattern => pattern.trim()).filter(pattern => pattern.length > 0)
+  : [];
 
 // Configure rate limiting
 const limiter = rateLimit({
@@ -38,9 +41,9 @@ async function scanImageDirectory(): Promise<void> {
     return;
   }
   
-  logger.info(`Scanning directory: ${IMAGE_DIR}${ONLY_HORIZONTAL ? ' (horizontal images only)' : ''}`);
+  logger.info(`Scanning directory: ${IMAGE_DIR}${ONLY_HORIZONTAL ? ' (horizontal images only)' : ''}${SKIP_PATTERNS.length > 0 ? ` (skipping patterns: ${SKIP_PATTERNS.join(', ')})` : ''}`);
   try {
-    imageFiles = await findJpgFiles(IMAGE_DIR, ONLY_HORIZONTAL);
+    imageFiles = await findJpgFiles(IMAGE_DIR, ONLY_HORIZONTAL, SKIP_PATTERNS);
     lastScanTime = now;
     logger.info(`Found ${imageFiles.length} JPG files`);
   } catch (error) {
@@ -141,6 +144,7 @@ async function startServer(): Promise<void> {
       logger.info(`Server is running on http://localhost:${PORT}`);
       logger.info(`Image directory: ${IMAGE_DIR}`);
       logger.info(`Only horizontal images: ${ONLY_HORIZONTAL}`);
+      logger.info(`Skip patterns: ${SKIP_PATTERNS.length > 0 ? SKIP_PATTERNS.join(', ') : 'none'}`);
       logger.info(`Cache TTL: ${SCAN_CACHE_TTL}ms`);
       logger.info(`Log level: ${process.env.LOG_LEVEL || 'info'}`);
     });

@@ -31,12 +31,28 @@ function isHorizontalImage(filePath: string): boolean {
 }
 
 /**
+ * Checks if a path should be skipped based on skip patterns
+ * Note: Uses substring matching, so a pattern 'temp' will match both '/temp/' and '/temperature/'
+ * @param pathToCheck - The path to check
+ * @param skipPatterns - Array of patterns to match against
+ * @returns true if the path should be skipped, false otherwise
+ */
+function shouldSkipPath(pathToCheck: string, skipPatterns: string[]): boolean {
+  if (skipPatterns.length === 0) {
+    return false;
+  }
+  
+  return skipPatterns.some(pattern => pathToCheck.includes(pattern));
+}
+
+/**
  * Recursively finds all JPG files in a directory and its subdirectories
  * @param dirPath - The directory path to scan
  * @param onlyHorizontal - If true, only return horizontal images
+ * @param skipPatterns - Array of string patterns to skip files/directories containing them
  * @returns Array of absolute file paths to JPG files
  */
-export async function findJpgFiles(dirPath: string, onlyHorizontal: boolean = false): Promise<string[]> {
+export async function findJpgFiles(dirPath: string, onlyHorizontal: boolean = false, skipPatterns: string[] = []): Promise<string[]> {
   const jpgFiles: string[] = [];
   
   try {
@@ -45,9 +61,15 @@ export async function findJpgFiles(dirPath: string, onlyHorizontal: boolean = fa
     for (const entry of entries) {
       const fullPath = path.join(dirPath, entry.name);
       
+      // Skip if the path contains any of the skip patterns
+      if (shouldSkipPath(fullPath, skipPatterns)) {
+        logger.debug(`Skipping path: ${fullPath}`);
+        continue;
+      }
+      
       if (entry.isDirectory()) {
         // Recursively search subdirectories
-        const subDirFiles = await findJpgFiles(fullPath, onlyHorizontal);
+        const subDirFiles = await findJpgFiles(fullPath, onlyHorizontal, skipPatterns);
         jpgFiles.push(...subDirFiles);
       } else if (entry.isFile()) {
         // Check if file has .jpg or .jpeg extension (case-insensitive)
