@@ -110,21 +110,28 @@ app.get('/image', async (_req: Request, res: Response) => {
         // Try serving a different image
         const alternativeImage = selectRandomFile(imageFiles);
         if (alternativeImage) {
-          const resolvedAlternative = path.resolve(alternativeImage);
-          logger.debug(`Serving alternative image: ${path.basename(alternativeImage)}`);
-          res.setHeader('Content-Type', 'image/jpeg');
-          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-          return res.sendFile(resolvedAlternative, (err) => {
-            if (err) {
-              logger.error(`Failed to send alternative file:`, err);
-              if (!res.headersSent) {
-                return res.status(500).json({ 
-                  error: 'Failed to send image',
-                  message: err.message
-                });
+          // Verify the alternative file exists before sending
+          try {
+            const resolvedAlternative = path.resolve(alternativeImage);
+            await fs.promises.access(resolvedAlternative, fs.constants.R_OK);
+            logger.debug(`Serving alternative image: ${path.basename(alternativeImage)}`);
+            res.setHeader('Content-Type', 'image/jpeg');
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            return res.sendFile(resolvedAlternative, (err) => {
+              if (err) {
+                logger.error(`Failed to send alternative file:`, err);
+                if (!res.headersSent) {
+                  res.status(500).json({ 
+                    error: 'Failed to send image',
+                    message: err.message
+                  });
+                }
               }
-            }
-          });
+            });
+          } catch (altAccessError) {
+            logger.error(`Alternative file also not accessible: ${path.basename(alternativeImage)}`, altAccessError);
+            // Fall through to return 404
+          }
         }
       }
       return res.status(404).json({ 
