@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  local-image-server:
+    build: .
+    container_name: local-image-server
+    ports:
+      - "3000:3000"
+    volumes:
+      # Mount your local image directory to /images in the container
+      # Replace ./images with your actual image directory path
+      - ./images:/images:ro
+    environment:
+      - PORT=3000
+      - IMAGE_DIR=/images
+      - ONLY_HORIZONTAL=false
+      - LOG_LEVEL=info
+      - SCAN_CACHE_TTL=60000
+    restart: unless-stopped
