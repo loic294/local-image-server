@@ -10,10 +10,10 @@ import logger from './logger';
  */
 function isHorizontalImage(filePath: string): boolean {
   try {
-    // Read only the first 32KB which is enough for most image headers
+    // Read the first 512KB which is enough for most image headers including large EXIF data
     const fd = fs.openSync(filePath, 'r');
-    const buffer = Buffer.alloc(32768);
-    const bytesRead = fs.readSync(fd, buffer, 0, 32768, 0);
+    const buffer = Buffer.alloc(524288);
+    const bytesRead = fs.readSync(fd, buffer, 0, 524288, 0);
     fs.closeSync(fd);
     
     const dimensions = sizeOf(buffer.slice(0, bytesRead));
