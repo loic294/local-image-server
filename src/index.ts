@@ -97,7 +97,7 @@ app.get('/image', async (_req: Request, res: Response) => {
       });
     }
     
-    logger.debug(`Serving image: ${path.basename(randomImage)}`);
+    logger.info(`Serving image: ${randomImage}`);
     
     // Set appropriate headers
     res.setHeader('Content-Type', 'image/jpeg');

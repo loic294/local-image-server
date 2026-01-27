@@ -3,6 +3,9 @@ import * as path from 'path';
 import sizeOf from 'image-size';
 import logger from './logger';
 
+// Buffer size for reading image headers (512KB - enough for most images including those with large EXIF data)
+const IMAGE_HEADER_BUFFER_SIZE = 524288;
+
 /**
  * Checks if an image is horizontal (width > height)
  * @param filePath - Path to the image file
@@ -10,10 +13,10 @@ import logger from './logger';
  */
 function isHorizontalImage(filePath: string): boolean {
   try {
-    // Read only the first 32KB which is enough for most image headers
+    // Read the first 512KB which is enough for most image headers including large EXIF data
     const fd = fs.openSync(filePath, 'r');
-    const buffer = Buffer.alloc(32768);
-    const bytesRead = fs.readSync(fd, buffer, 0, 32768, 0);
+    const buffer = Buffer.alloc(IMAGE_HEADER_BUFFER_SIZE);
+    const bytesRead = fs.readSync(fd, buffer, 0, IMAGE_HEADER_BUFFER_SIZE, 0);
     fs.closeSync(fd);
     
     const dimensions = sizeOf(buffer.slice(0, bytesRead));
