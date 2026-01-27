@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import * as path from 'path';
+import * as fs from 'fs';
 import logger from './logger';
 import { findJpgFiles, selectRandomFile } from './imageScanner';
 
@@ -97,14 +98,60 @@ app.get('/image', async (_req: Request, res: Response) => {
       });
     }
     
+    // Verify that the file exists before attempting to send it
+    // This prevents serving HTML error pages when cached files no longer exist
+    try {
+      await fs.promises.access(resolvedImage, fs.constants.R_OK);
+    } catch (accessError) {
+      logger.warn(`Cached file no longer accessible: ${path.basename(randomImage)}`, accessError);
+      // Remove the file from cache and rescan
+      imageFiles = imageFiles.filter(f => f !== randomImage);
+      if (imageFiles.length > 0) {
+        // Try serving a different image
+        const alternativeImage = selectRandomFile(imageFiles);
+        if (alternativeImage) {
+          const resolvedAlternative = path.resolve(alternativeImage);
+          logger.debug(`Serving alternative image: ${path.basename(alternativeImage)}`);
+          res.setHeader('Content-Type', 'image/jpeg');
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          return res.sendFile(resolvedAlternative, (err) => {
+            if (err) {
+              logger.error(`Failed to send alternative file:`, err);
+              if (!res.headersSent) {
+                return res.status(500).json({ 
+                  error: 'Failed to send image',
+                  message: err.message
+                });
+              }
+            }
+          });
+        }
+      }
+      return res.status(404).json({ 
+        error: 'Image not found',
+        message: 'The selected image file is no longer available'
+      });
+    }
+    
     logger.debug(`Serving image: ${path.basename(randomImage)}`);
     
     // Set appropriate headers
     res.setHeader('Content-Type', 'image/jpeg');
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     
-    // Send the image file
-    res.sendFile(resolvedImage);
+    // Send the image file with proper error handling
+    res.sendFile(resolvedImage, (err) => {
+      if (err) {
+        logger.error(`Failed to send file ${path.basename(randomImage)}:`, err);
+        // Only send error response if headers haven't been sent yet
+        if (!res.headersSent) {
+          res.status(500).json({ 
+            error: 'Failed to send image',
+            message: err.message
+          });
+        }
+      }
+    });
   } catch (error) {
     logger.error('Error serving image:', error);
     res.status(500).json({ 
