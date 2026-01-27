@@ -8,10 +8,15 @@ import logger from './logger';
  * @param filePath - Path to the image file
  * @returns true if the image is horizontal, false otherwise
  */
-async function isHorizontalImage(filePath: string): Promise<boolean> {
+function isHorizontalImage(filePath: string): boolean {
   try {
-    const buffer = await fs.promises.readFile(filePath);
-    const dimensions = sizeOf(buffer);
+    // Read only the first 32KB which is enough for most image headers
+    const fd = fs.openSync(filePath, 'r');
+    const buffer = Buffer.alloc(32768);
+    const bytesRead = fs.readSync(fd, buffer, 0, 32768, 0);
+    fs.closeSync(fd);
+    
+    const dimensions = sizeOf(buffer.slice(0, bytesRead));
     if (dimensions.width && dimensions.height) {
       return dimensions.width > dimensions.height;
     }
@@ -47,7 +52,7 @@ export async function findJpgFiles(dirPath: string, onlyHorizontal: boolean = fa
         if (ext === '.jpg' || ext === '.jpeg') {
           // If filtering for horizontal images, check dimensions
           if (onlyHorizontal) {
-            if (await isHorizontalImage(fullPath)) {
+            if (isHorizontalImage(fullPath)) {
               jpgFiles.push(fullPath);
             }
           } else {
