@@ -95,7 +95,7 @@ The application can be configured using environment variables:
 | `PORT` | Server port | `3000` |
 | `IMAGE_DIR` | Directory containing JPG images | `/images` |
 | `ONLY_HORIZONTAL` | Only select horizontal images (width > height) | `false` |
-| `SKIP_PATTERNS` | Comma-separated list of strings to skip files/directories containing them (e.g., `.backup,thumbnail,temp`) | `` (empty) |
+| `SKIP_PATTERNS` | Comma-separated list of strings to skip files/directories containing them. Uses substring matching (e.g., `temp` matches both `/temp/` and `/temperature/`). Example: `.backup,thumbnail,temp` | `` (empty) |
 | `LOG_LEVEL` | Logging level (error, warn, info, debug) | `info` |
 | `SCAN_CACHE_TTL` | Cache TTL for image list in milliseconds | `60000` (60 seconds) |
 

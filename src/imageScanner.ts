@@ -32,6 +32,7 @@ function isHorizontalImage(filePath: string): boolean {
 
 /**
  * Checks if a path should be skipped based on skip patterns
+ * Note: Uses substring matching, so a pattern 'temp' will match both '/temp/' and '/temperature/'
  * @param pathToCheck - The path to check
  * @param skipPatterns - Array of patterns to match against
  * @returns true if the path should be skipped, false otherwise
