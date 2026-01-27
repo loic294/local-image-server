@@ -7,6 +7,7 @@ import { findJpgFiles, selectRandomFile } from './imageScanner';
 const app = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const IMAGE_DIR = process.env.IMAGE_DIR || '/images';
+const ONLY_HORIZONTAL = process.env.ONLY_HORIZONTAL === 'true';
 
 // Configure rate limiting
 const limiter = rateLimit({
@@ -37,9 +38,9 @@ async function scanImageDirectory(): Promise<void> {
     return;
   }
   
-  logger.info(`Scanning directory: ${IMAGE_DIR}`);
+  logger.info(`Scanning directory: ${IMAGE_DIR}${ONLY_HORIZONTAL ? ' (horizontal images only)' : ''}`);
   try {
-    imageFiles = await findJpgFiles(IMAGE_DIR);
+    imageFiles = await findJpgFiles(IMAGE_DIR, ONLY_HORIZONTAL);
     lastScanTime = now;
     logger.info(`Found ${imageFiles.length} JPG files`);
   } catch (error) {
@@ -139,6 +140,7 @@ async function startServer(): Promise<void> {
     app.listen(PORT, () => {
       logger.info(`Server is running on http://localhost:${PORT}`);
       logger.info(`Image directory: ${IMAGE_DIR}`);
+      logger.info(`Only horizontal images: ${ONLY_HORIZONTAL}`);
       logger.info(`Cache TTL: ${SCAN_CACHE_TTL}ms`);
       logger.info(`Log level: ${process.env.LOG_LEVEL || 'info'}`);
     });

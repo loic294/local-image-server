@@ -94,6 +94,7 @@ The application can be configured using environment variables:
 |----------|-------------|---------|
 | `PORT` | Server port | `3000` |
 | `IMAGE_DIR` | Directory containing JPG images | `/images` |
+| `ONLY_HORIZONTAL` | Only select horizontal images (width > height) | `false` |
 | `LOG_LEVEL` | Logging level (error, warn, info, debug) | `info` |
 | `SCAN_CACHE_TTL` | Cache TTL for image list in milliseconds | `60000` (60 seconds) |
 
