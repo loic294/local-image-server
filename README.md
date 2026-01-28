@@ -37,6 +37,7 @@ docker-compose up -d
 
 4. Access the server:
 - Random image: http://localhost:3000/image
+- Image list (JSON): http://localhost:3000/image-list
 - Health check: http://localhost:3000/health
 - API info: http://localhost:3000/
 
@@ -112,7 +113,8 @@ Returns basic API information and available endpoints.
   "endpoints": {
     "/": "This info page",
     "/health": "Health check",
-    "/image": "Get a random image from the configured directory"
+    "/image": "Get a random image from the configured directory (supports ?file=<path> parameter)",
+    "/image-list": "Get a list of all images in JSON format (randomly ordered)"
   }
 }
 ```
@@ -130,11 +132,45 @@ Health check endpoint that returns server status.
 ```
 
 ### GET /image
-Returns a random JPG image from the configured directory.
+Returns a random JPG image from the configured directory. Optionally, you can request a specific image using the `file` query parameter.
+
+**Query Parameters:**
+- `file` (optional): Relative path to a specific image file (URL-encoded)
+
+**Examples:**
+- Random image: `GET /image`
+- Specific image: `GET /image?file=subfolder%2Fimage.jpg`
 
 **Response:**
 - Content-Type: `image/jpeg`
 - Body: Binary image data
+
+**Errors:**
+- `404`: No JPG files found in the directory or requested file not found
+- `403`: Invalid file path (path traversal attempt)
+- `500`: Internal server error
+
+### GET /image-list
+Returns a list of all available images in JSON format. The list is randomly ordered each time the endpoint is called. The same filters apply as for the `/image` endpoint (ONLY_HORIZONTAL, SKIP_PATTERNS).
+
+**Response:**
+- Content-Type: `application/json`
+- Body: Array of image objects
+
+**Example Response:**
+```json
+[
+  {
+    "url_img": "http://localhost:3000/image?file=image1.jpg"
+  },
+  {
+    "url_img": "http://localhost:3000/image?file=subfolder%2Fimage2.jpg"
+  },
+  {
+    "url_img": "http://localhost:3000/image?file=image3.jpg"
+  }
+]
+```
 
 **Errors:**
 - `404`: No JPG files found in the directory
