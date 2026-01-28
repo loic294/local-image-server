@@ -155,8 +155,12 @@ app.get('/image-list', async (req: Request, res: Response) => {
       });
     }
     
-    // Create a copy and shuffle the array randomly
-    const shuffledImages = [...imageFiles].sort(() => Math.random() - 0.5);
+    // Create a copy and shuffle the array randomly using Fisher-Yates algorithm
+    const shuffledImages = [...imageFiles];
+    for (let i = shuffledImages.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffledImages[i], shuffledImages[j]] = [shuffledImages[j], shuffledImages[i]];
+    }
     
     // Get the host from the request to build full URLs
     const protocol = req.protocol;
@@ -164,6 +168,8 @@ app.get('/image-list', async (req: Request, res: Response) => {
     const baseUrl = `${protocol}://${host}`;
     
     // Map the file paths to the URL format
+    // Note: All paths here are from imageFiles which were already validated during scanning,
+    // so they are guaranteed to be within IMAGE_DIR and safe
     const imageList = shuffledImages.map(imagePath => {
       // Get relative path from IMAGE_DIR
       const relativePath = path.relative(IMAGE_DIR, imagePath);
