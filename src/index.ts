@@ -64,9 +64,9 @@ app.get('/health', (_req: Request, res: Response) => {
 });
 
 /**
- * Main endpoint that serves a random image
+ * Main endpoint that serves a random image or a specific image if file parameter is provided
  */
-app.get('/image', async (_req: Request, res: Response) => {
+app.get('/image', async (req: Request, res: Response) => {
   try {
     await scanImageDirectory();
     
@@ -78,29 +78,52 @@ app.get('/image', async (_req: Request, res: Response) => {
       });
     }
     
-    const randomImage = selectRandomFile(imageFiles);
+    let imageToServe: string | null = null;
     
-    if (!randomImage) {
-      logger.error('Failed to select random image');
+    // Check if a specific file was requested via query parameter
+    const requestedFile = req.query.file as string | undefined;
+    if (requestedFile) {
+      // Decode the file path
+      const decodedFile = decodeURIComponent(requestedFile);
+      // Construct the full path
+      const fullPath = path.join(IMAGE_DIR, decodedFile);
+      
+      // Verify that the file exists in our scanned list
+      if (imageFiles.includes(fullPath)) {
+        imageToServe = fullPath;
+      } else {
+        logger.warn(`Requested file not found in image list: ${decodedFile}`);
+        return res.status(404).json({ 
+          error: 'Image not found',
+          message: 'The requested image was not found'
+        });
+      }
+    } else {
+      // Select a random image if no specific file was requested
+      imageToServe = selectRandomFile(imageFiles);
+    }
+    
+    if (!imageToServe) {
+      logger.error('Failed to select image');
       return res.status(500).json({ 
         error: 'Internal server error',
-        message: 'Failed to select random image'
+        message: 'Failed to select image'
       });
     }
     
     // Verify that the selected file is still within the IMAGE_DIR to prevent path traversal
-    const resolvedImage = path.resolve(randomImage);
+    const resolvedImage = path.resolve(imageToServe);
     const resolvedImageDir = path.resolve(IMAGE_DIR);
     
     if (!resolvedImage.startsWith(resolvedImageDir)) {
-      logger.error(`Path traversal attempt detected: ${randomImage}`);
+      logger.error(`Path traversal attempt detected: ${imageToServe}`);
       return res.status(403).json({ 
         error: 'Forbidden',
         message: 'Invalid file path'
       });
     }
     
-    logger.info(`Serving image: ${randomImage}`);
+    logger.info(`Serving image: ${imageToServe}`);
     
     // Set appropriate headers
     res.setHeader('Content-Type', 'image/jpeg');
@@ -118,6 +141,63 @@ app.get('/image', async (_req: Request, res: Response) => {
 });
 
 /**
+ * Image list endpoint that returns all images in JSON format
+ */
+app.get('/image-list', async (req: Request, res: Response) => {
+  try {
+    await scanImageDirectory();
+    
+    if (imageFiles.length === 0) {
+      logger.warn('No JPG files found in directory');
+      return res.status(404).json({ 
+        error: 'No images found',
+        message: `No JPG files found in directory: ${IMAGE_DIR}`
+      });
+    }
+    
+    // Create a copy and shuffle the array randomly using Fisher-Yates algorithm
+    const shuffledImages = [...imageFiles];
+    for (let i = shuffledImages.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffledImages[i], shuffledImages[j]] = [shuffledImages[j], shuffledImages[i]];
+    }
+    
+    // Get the host from the request to build full URLs
+    const protocol = req.protocol;
+    const host = req.get('host');
+    const baseUrl = `${protocol}://${host}`;
+    
+    // Map the file paths to the URL format
+    // Note: All paths here are from imageFiles which were already validated during scanning,
+    // so they are guaranteed to be within IMAGE_DIR and safe
+    const imageList = shuffledImages.map(imagePath => {
+      // Get relative path from IMAGE_DIR
+      const relativePath = path.relative(IMAGE_DIR, imagePath);
+      // Encode the path for safe URL usage
+      const encodedPath = encodeURIComponent(relativePath);
+      return {
+        url_img: `${baseUrl}/image?file=${encodedPath}`
+      };
+    });
+    
+    logger.info(`Serving image list with ${imageList.length} images`);
+    
+    // Set appropriate headers
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    
+    // Send the JSON response
+    res.json(imageList);
+  } catch (error) {
+    logger.error('Error serving image list:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
  * Root endpoint with basic info
  */
 app.get('/', (_req: Request, res: Response) => {
@@ -127,7 +207,8 @@ app.get('/', (_req: Request, res: Response) => {
     endpoints: {
       '/': 'This info page',
       '/health': 'Health check',
-      '/image': 'Get a random image from the configured directory'
+      '/image': 'Get a random image from the configured directory (supports ?file=<path> parameter)',
+      '/image-list': 'Get a list of all images in JSON format (randomly ordered)'
     }
   });
 });
